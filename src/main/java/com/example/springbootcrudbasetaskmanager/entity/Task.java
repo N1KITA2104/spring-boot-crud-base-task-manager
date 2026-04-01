@@ -24,4 +24,9 @@ public class Task {
     private TaskStatus status;
 
     private LocalDate createdAt;
+
+    @PrePersist
+    public void prePersist() {
+        this.createdAt = LocalDate.now();
+    }
 }
