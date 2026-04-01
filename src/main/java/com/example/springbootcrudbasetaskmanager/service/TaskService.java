@@ -4,9 +4,9 @@ import com.example.springbootcrudbasetaskmanager.dto.TaskRequest;
 import com.example.springbootcrudbasetaskmanager.dto.TaskResponse;
 import com.example.springbootcrudbasetaskmanager.entity.Task;
 import com.example.springbootcrudbasetaskmanager.entity.TaskStatus;
+import com.example.springbootcrudbasetaskmanager.exception.TaskNotFoundException;
 import com.example.springbootcrudbasetaskmanager.mapper.TaskMapper;
 import com.example.springbootcrudbasetaskmanager.repository.TaskRepository;
-import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -44,7 +44,7 @@ public class TaskService {
     public TaskResponse getTaskById(Long id) {
 
         Task task = taskRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Task not found"));
+                .orElseThrow(() -> new TaskNotFoundException(id));
         return TaskMapper.toResponse(task);
     }
 
@@ -58,7 +58,7 @@ public class TaskService {
     public TaskResponse updateTask(Long id, TaskRequest updatedTask) {
 
         Task task = taskRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Task not found"));
+                .orElseThrow(() -> new TaskNotFoundException(id));
 
         TaskMapper.updateEntity(task, updatedTask);
         Task saved = taskRepository.save(task);
@@ -69,7 +69,7 @@ public class TaskService {
     public void deleteTask(Long id) {
 
         if (!taskRepository.existsById(id)) {
-            throw new EntityNotFoundException("Task not found");
+            throw new TaskNotFoundException(id);
         }
 
         taskRepository.deleteById(id);
