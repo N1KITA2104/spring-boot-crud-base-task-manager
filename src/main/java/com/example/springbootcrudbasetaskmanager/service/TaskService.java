@@ -1,7 +1,10 @@
 package com.example.springbootcrudbasetaskmanager.service;
 
+import com.example.springbootcrudbasetaskmanager.dto.TaskRequest;
+import com.example.springbootcrudbasetaskmanager.dto.TaskResponse;
 import com.example.springbootcrudbasetaskmanager.entity.Task;
 import com.example.springbootcrudbasetaskmanager.entity.TaskStatus;
+import com.example.springbootcrudbasetaskmanager.mapper.TaskMapper;
 import com.example.springbootcrudbasetaskmanager.repository.TaskRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
@@ -19,48 +22,56 @@ public class TaskService {
         this.taskRepository = taskRepository;
     }
 
-    public Page<Task> getAllTasks(TaskStatus status, LocalDate createdAt, int page, int size) {
+    public Page<TaskResponse> getAllTasks(TaskStatus status, LocalDate createdAt, int page, int size) {
 
         Pageable pageable = PageRequest.of(page, size);
 
+        Page<Task> tasks;
+
         if (status != null && createdAt != null) {
-            return taskRepository.findByStatusAndCreatedAt(status, createdAt, pageable);
+            tasks = taskRepository.findByStatusAndCreatedAt(status, createdAt, pageable);
+        } else if (status != null) {
+            tasks = taskRepository.findByStatus(status, pageable);
+        } else if (createdAt != null) {
+            tasks = taskRepository.findByCreatedAt(createdAt, pageable);
+        } else {
+            tasks = taskRepository.findAll(pageable);
         }
 
-        if (status != null) {
-            return taskRepository.findByStatus(status, pageable);
-        }
-
-        if (createdAt != null) {
-            return taskRepository.findByCreatedAt(createdAt, pageable);
-        }
-
-        return taskRepository.findAll(pageable);
+        return tasks.map(TaskMapper::toResponse);
     }
 
-    public Task getTaskById(Long id) {
-        return taskRepository.findById(id)
+    public TaskResponse getTaskById(Long id) {
+
+        Task task = taskRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Task not found"));
+        return TaskMapper.toResponse(task);
     }
 
-    public void createTask(Task task) {
-        taskRepository.save(task);
+    public TaskResponse createTask(TaskRequest request) {
+
+        Task task = TaskMapper.toEntity(request);
+        Task saved = taskRepository.save(task);
+        return TaskMapper.toResponse(saved);
+    }
+
+    public TaskResponse updateTask(Long id, TaskRequest updatedTask) {
+
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Task not found"));
+
+        TaskMapper.updateEntity(task, updatedTask);
+        Task saved = taskRepository.save(task);
+
+        return TaskMapper.toResponse(saved);
     }
 
     public void deleteTask(Long id) {
-        Task task = taskRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Task not found"));
 
-        taskRepository.delete(task);
-    }
+        if (!taskRepository.existsById(id)) {
+            throw new EntityNotFoundException("Task not found");
+        }
 
-    public Task updateTask(Long id, Task updated_task) {
-        Task task = taskRepository.findById(id)
-                        .orElseThrow(() -> new EntityNotFoundException("Task not found"));
-        task.setTitle(updated_task.getTitle());
-        task.setDescription(updated_task.getDescription());
-        task.setStatus(updated_task.getStatus());
-
-        return taskRepository.save(task);
+        taskRepository.deleteById(id);
     }
 }
